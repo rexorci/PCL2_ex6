@@ -3,9 +3,6 @@
 from math import pow, log2
 from collections import defaultdict
 
-from pandas import DataFrame
-
-
 class CharLM:
     """Implements a character-level n-gram language model."""
 
