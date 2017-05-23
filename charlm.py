@@ -68,16 +68,16 @@ class CharLM:
         self._logprobs[history].default_factory = lambda: log_probability
 
     @staticmethod
-    def _extract_data(data_file):
+    def extract_data(data_file):
         """extract the given data file"""
         extracted_file = open(data_file, 'r', encoding='utf-8')
         extracted_file = extracted_file.readlines()
-        return extracted_file
+        return [line.rstrip() for line in extracted_file]
 
     def p_laplace(self, head_count, history_count):
         """
-        
-        :return: 
+        Computes the laplace probability of an ngram with given
+        head_count, history_count using log scale. The vocabulary must be set before use.
         """
         return self.log((head_count + 1) / (history_count + len(self.V)))
 
@@ -92,18 +92,25 @@ class CharLM:
         # Use self._extract_ngrams() to extract ngrams from
         # sentences.
 
-        sentences = CharLM._extract_data(training_data)
-
-        # We extract the ngrams for each sentence using the provided function,
-        # then we store the number of occurencies in a nested dictionary.
+        sentences = CharLM.extract_data(training_data)
         ngram_counts = defaultdict(lambda: defaultdict(int))
 
         for sentence in sentences:
+            # We add all characters that occur in any of the sentences
+            # of the trainfile to our vocabulary.
             self.V |= set(sentence)
+
+            # We extract the ngrams using the provided function
             for ngram in self._extract_ngrams(sentence):
+
+                # We split each ngram it into head and history
+                # and store the number of occurences of the ngram
+                # in a nested structure.
                 head, history = ngram[-1], ngram[:-1]
                 ngram_counts[history][head] += 1
 
+        # For all ngrams (aswell as unknown ngrams with known/unknown history),
+        # we compute their probability, and store it in log scale.
         self._set_unk_given_unknown_history(self.p_laplace(0,0))
 
         for history, heads in ngram_counts.items():
