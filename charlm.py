@@ -12,13 +12,13 @@ class CharLM:
     BOS_SYMBOL = object()
     EOS_SYMBOL = object()
 
+    #A set of all characters of that language
+    V = set()
+
     def __init__(self, n=3):
         """Initialises a language model of order @param n."""
         self._order = n
         self._logprobs = defaultdict(lambda: defaultdict(float))
-
-        #TODO extract vocabulary size from trainfile.
-        self.V = 30
 
     @staticmethod
     def log(probability):
@@ -79,7 +79,7 @@ class CharLM:
         
         :return: 
         """
-        return self.log((head_count + 1) / (history_count + self.V))
+        return self.log((head_count + 1) / (history_count + len(self.V)))
 
     def train(self, training_data):
         """
@@ -99,6 +99,7 @@ class CharLM:
         ngram_counts = defaultdict(lambda: defaultdict(int))
 
         for sentence in sentences:
+            self.V |= set(sentence)
             for ngram in self._extract_ngrams(sentence):
                 head, history = ngram[-1], ngram[:-1]
                 ngram_counts[history][head] += 1
