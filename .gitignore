@@ -1,0 +1,10 @@
+
+*.xml
+
+*.pyc
+
+*.iml
+
+*.xml
+
+.idea/vcs.xml

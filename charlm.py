@@ -3,6 +3,9 @@
 from math import pow, log2
 from collections import defaultdict
 
+from pandas import DataFrame
+
+
 class CharLM:
     """Implements a character-level n-gram language model."""
 
@@ -13,6 +16,9 @@ class CharLM:
         """Initialises a language model of order @param n."""
         self._order = n
         self._logprobs = defaultdict(lambda: defaultdict(float))
+
+        #TODO extract vocabulary size from trainfile.
+        self.V = 30
 
     @staticmethod
     def log(probability):
@@ -61,16 +67,50 @@ class CharLM:
         """
         self._logprobs[history].default_factory = lambda: log_probability
 
+    @staticmethod
+    def _extract_data(data_file):
+        """extract the given data file"""
+        extracted_file = open(data_file, 'r', encoding='utf-8')
+        extracted_file = extracted_file.readlines()
+        return extracted_file
+
+    def p_laplace(self, head_count, history_count):
+        """
+        
+        :return: 
+        """
+        return self.log((head_count + 1) / (history_count + self.V))
+
     def train(self, training_data):
         """
         Trains this language model on the sentences contained in
         file @param training_data (one sentence per line).
         """
-        #TODO: Count n-gram occurrences, calculate their
-        #      probability, and store them via self._add_ngram().
-        #
-        #      Use self._extract_ngrams() to extract ngrams from
-        #      sentences.
+
+        # Count n-gram occurrences, calculate their
+        # probability, and store them via self._add_ngram().
+        # Use self._extract_ngrams() to extract ngrams from
+        # sentences.
+
+        sentences = CharLM._extract_data(training_data)
+
+        # We extract the ngrams for each sentence using the provided function,
+        # then we store the number of occurencies in a nested dictionary.
+        ngram_counts = defaultdict(lambda: defaultdict(int))
+
+        for sentence in sentences:
+            for ngram in self._extract_ngrams(sentence):
+                head, history = ngram[-1], ngram[:-1]
+                ngram_counts[history][head] += 1
+
+        self._set_unk_given_unknown_history(self.p_laplace(0,0))
+
+        for history, heads in ngram_counts.items():
+            history_count = sum(heads.values())
+            self._set_unk_given_known_history(history, self.p_laplace(0,history_count))
+
+            for head, head_count in heads.items():
+                self._add_ngram(head, history, self.p_laplace(head_count, history_count))
 
     def get_perplexity(self, sentence):
         """Returns the perplexity of @param sentence."""
